@@ -614,3 +614,34 @@ int __qcom_scm_iommu_secure_unmap(struct device *dev, u32 id, u32 ctx_id,
 			    QCOM_SCM_IOMMU_SECURE_UNMAP2_FLAT, &desc, &res);
 	return ret ? : res.a1;
 }
+
+int __qcom_scm_io_readl(struct device *dev, phys_addr_t addr,
+			unsigned int *val)
+{
+	struct qcom_scm_desc desc = {0};
+	struct arm_smccc_res res;
+	int ret;
+
+	desc.args[0] = addr;
+	desc.arginfo = QCOM_SCM_ARGS(1);
+
+	ret = qcom_scm_call(dev, QCOM_SCM_SVC_IO, QCOM_SCM_IO_READ,
+			    &desc, &res);
+	if (ret >= 0)
+		*val = res.a1;
+
+	return ret < 0 ? ret : 0;
+}
+
+int __qcom_scm_io_writel(struct device *dev, phys_addr_t addr, unsigned int val)
+{
+	struct qcom_scm_desc desc = {0};
+	struct arm_smccc_res res;
+
+	desc.args[0] = addr;
+	desc.args[1] = val;
+	desc.arginfo = QCOM_SCM_ARGS(2);
+
+	return qcom_scm_call(dev, QCOM_SCM_SVC_IO, QCOM_SCM_IO_WRITE,
+			     &desc, &res);
+}

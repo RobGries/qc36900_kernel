@@ -59,4 +59,6 @@ extern int qcom_scm_iommu_secure_unmap(u32 id, u32 ctx_id, u64 va, u32 size,
 				       u32 flags);
 extern int qcom_scm_is_call_available(u32 svc_id, u32 cmd_id);
 
+extern int qcom_scm_io_readl(phys_addr_t addr, unsigned int *val);
+extern int qcom_scm_io_writel(phys_addr_t addr, unsigned int val);
 #endif
