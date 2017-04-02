@@ -15,6 +15,7 @@
 #include <linux/time.h>
 #include <linux/of.h>
 #include <linux/platform_device.h>
+#include <linux/msm-bus.h>
 #include <linux/phy/phy.h>
 #include <linux/phy/phy-qcom-ufs.h>
 

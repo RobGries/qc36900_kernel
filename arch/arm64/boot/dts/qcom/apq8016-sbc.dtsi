@@ -126,12 +126,7 @@
 		/* On Low speed expansion */
 			label = "LS-SPI0";
 			status = "okay";
-			spidev@0 {
-				   compatible = "spidev";
-				   spi-max-frequency = <100000>;
-				   reg = <0>;
-				 };
-			};
+		};
 
 		leds {
 			pinctrl-names = "default";
