@@ -584,8 +584,11 @@ static int mdp5_crtc_cursor_move(struct drm_crtc *crtc, int x, int y)
 	uint32_t roi_h;
 	unsigned long flags;
 
-	/* In case the CRTC is disabled, just drop the cursor update */
-	if (unlikely(!crtc->state->enable))
+	/*
+	 * In case the CRTC isn't active (DPMS isn't ON), just drop the cursor
+	 * update
+	 */
+	if (unlikely(!crtc->state->active))
 		return 0;
 
 	mdp5_crtc->cursor.x = x = max(x, 0);
