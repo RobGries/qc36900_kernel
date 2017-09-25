@@ -593,7 +593,7 @@ config TILE_SROM
 
 config MSM_ADSPRPC
 	tristate "QTI ADSP RPC driver"
-	depends on QCOM_SMD
+	depends on RPMSG_QCOM_SMD
 	help
 	  Provides a communication mechanism that allows for clients to
 	  make remote method invocations across processor boundary to

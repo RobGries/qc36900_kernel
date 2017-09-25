@@ -21,7 +21,7 @@
 #include <linux/cdev.h>
 #include <linux/list.h>
 #include <linux/hash.h>
-#include <linux/soc/qcom/smd.h>
+#include <linux/rpmsg.h>
 #include <linux/scatterlist.h>
 #include <linux/fs.h>
 #include <linux/uaccess.h>
@@ -32,6 +32,7 @@
 #include <linux/dma-mapping.h>
 #include <linux/kref.h>
 #include <linux/sort.h>
+#include <asm/cacheflush.h>
 #include "adsprpc_compat.h"
 #include "adsprpc_shared.h"
 
@@ -89,7 +90,7 @@ struct fastrpc_buf {
 	void *virt;
 	dma_addr_t phys;
 	ssize_t size;
-	struct dma_attrs attrs;
+	unsigned long attrs;
 	int used;
 };
 
@@ -138,7 +139,7 @@ struct fastrpc_apps {
 	spinlock_t hlock;
 	struct hlist_head htbl[RPC_HASH_SZ];
 	struct device *dev;
-	struct qcom_smd_device *qsdev;
+	struct rpmsg_device *rpdev;
 };
 
 struct fastrpc_mmap {
@@ -173,8 +174,8 @@ static void free_mem(struct fastrpc_buf *buf)
 	struct fastrpc_apps *me = &gfa;
 
 	if (!IS_ERR_OR_NULL(buf->virt)) {
-		dma_free_attrs(&me->qsdev->dev, buf->size, buf->virt,
-				buf->phys, &buf->attrs);
+		dma_free_attrs(&me->rpdev->dev, buf->size, buf->virt,
+				buf->phys, buf->attrs);
 		buf->virt = 0;
 	}
 }
@@ -183,16 +184,15 @@ static int alloc_mem(struct fastrpc_buf *buf)
 {
 	struct fastrpc_apps *me = &gfa;
 	int err = 0;
-	DEFINE_DMA_ATTRS(attrs);
+	unsigned long attrs = DMA_ATTR_FORCE_CONTIGUOUS;
 
-	VERIFY(err, me->qsdev);
+	VERIFY(err, me->rpdev);
 	if (err)
 		goto bail;
-	dma_set_mask(&me->qsdev->dev, DMA_BIT_MASK(32));
-	dma_set_attr(DMA_ATTR_FORCE_CONTIGUOUS, &attrs);
+	dma_set_mask(&me->rpdev->dev, DMA_BIT_MASK(32));
 
-	buf->virt = dma_alloc_attrs(&me->qsdev->dev,
-				buf->size, &buf->phys, GFP_KERNEL, &attrs);
+	buf->virt = dma_alloc_attrs(&me->rpdev->dev,
+				buf->size, &buf->phys, GFP_KERNEL, attrs);
 	VERIFY(err, !IS_ERR_OR_NULL(buf->virt));
 	if (err)
 		goto bail;
@@ -320,7 +320,7 @@ static void context_free(struct smq_invoke_ctx *ctx, int remove)
 		for (j = 0; j < num; j++) {
 			if (i >= inbufs)
 				SetPageDirty(ctx->pg[offset + j]);
-			page_cache_release(ctx->pg[offset + j]);
+			put_page(ctx->pg[offset + j]);
 		}
 		offset += num;
 	}
@@ -526,8 +526,8 @@ static int buf_get_user_pages(struct smq_invoke_ctx *ctx, int id, int offset,
 		if (!mapmatch)
 			return 0;
 	}
-	VERIFY(err, nr_pages == get_user_pages_unlocked(current, current->mm,
-			start, nr_pages, access, 0, &ctx->pg[offset]));
+	VERIFY(err, nr_pages == get_user_pages_unlocked(
+			start, nr_pages, &ctx->pg[offset], access ? FOLL_WRITE : 0));
 	if (err)
 		return -1;
 	pfnstart = pfnlast = page_to_pfn(ctx->pg[offset]);
@@ -846,7 +846,7 @@ static int fastrpc_invoke_send(struct fastrpc_apps *me,
 	msg.invoke.header.sc = sc;
 	msg.invoke.page.addr = buf->phys;
 	msg.invoke.page.size = buf_page_size(buf->used);
-	err = qcom_smd_send(me->qsdev->channel, &msg, sizeof(msg));
+	err = rpmsg_send(me->rpdev->ept, &msg, sizeof(msg));
 	return err;
 }
 
@@ -1018,8 +1018,8 @@ static int buf_get_map_pages(void *addr, int nr_pages, int access,
 	unsigned long pfnstart, pfnlast, pfn = 0;
 	int i, num = 0, err = 0;
 
-	VERIFY(err, nr_pages == get_user_pages_unlocked(current, current->mm,
-			start, nr_pages, access, 0, map->pg));
+	VERIFY(err, nr_pages == get_user_pages_unlocked(
+			start, nr_pages, map->pg, access ? FOLL_WRITE : 0));
 	if (err)
 		return -1;
 	pfnstart = pfnlast = page_to_pfn(map->pg[0]);
@@ -1052,7 +1052,7 @@ static void free_map(struct fastrpc_mmap *map)
 	num = buf_num_pages((void *)map->vaddrin, map->size);
 	for (j = 0; j < num; j++) {
 		SetPageDirty(map->pg[j]);
-		page_cache_release(map->pg[j]);
+		put_page(map->pg[j]);
 	}
 	kfree(map);
 }
@@ -1476,25 +1476,25 @@ static long fastrpc_device_ioctl(struct file *file, unsigned int ioctl_num,
 	return err;
 }
 
-static void qcom_smd_fastrpc_remove(struct qcom_smd_device *dev)
+static void qcom_smd_fastrpc_remove(struct rpmsg_device *rpdev)
 {
 	struct fastrpc_apps *me = &gfa;
 
 	context_notify_all_users(&me->clst);
 }
 
-static int qcom_smd_fastrpc_probe(struct qcom_smd_device *dev)
+static int qcom_smd_fastrpc_probe(struct rpmsg_device *rpdev)
 {
 	struct fastrpc_apps *me = &gfa;
 
-	of_dma_configure_ops(&dev->dev, dev->dev.of_node);
-	me->qsdev = dev;
+	of_dma_configure(&rpdev->dev, rpdev->dev.of_node);
+	me->rpdev = rpdev;
 	return 0;
 }
 
-static int qcom_smd_fastrpc_callback(struct qcom_smd_device *dev,
-					const void *data,
-					size_t count)
+static int qcom_smd_fastrpc_callback(struct rpmsg_device *rpdev,
+					void *data, int count,
+					void *priv, u32 addr)
 {
 	struct smq_invoke_rsp *rsp = (struct smq_invoke_rsp *)data;
 	int err = 0;
@@ -1513,11 +1513,11 @@ static const struct of_device_id qcom_smd_fastrpc_of_match[] = {
 };
 MODULE_DEVICE_TABLE(of, qcom_smd_fastrpc_of_match);
 
-static struct qcom_smd_driver qcom_smd_fastrpc_driver = {
+static struct rpmsg_driver qcom_smd_fastrpc_driver = {
 	.probe = qcom_smd_fastrpc_probe,
 	.remove = qcom_smd_fastrpc_remove,
 	.callback = qcom_smd_fastrpc_callback,
-	.driver  = {
+	.drv  = {
 		.name  = "qcom_smd_fastrpc",
 		.owner = THIS_MODULE,
 		.of_match_table = qcom_smd_fastrpc_of_match,
@@ -1562,7 +1562,7 @@ static int __init fastrpc_device_init(void)
 	if (err)
 		goto device_create_bail;
 
-	qcom_smd_driver_register(&qcom_smd_fastrpc_driver);
+	register_rpmsg_driver(&qcom_smd_fastrpc_driver);
 	return 0;
 
 device_create_bail:

@@ -109,7 +109,7 @@ ENDPROC(__clean_dcache_area_pou)
  *	- start   - virtual start address of region
  *	- size    - size in question
  */
-__dma_inv_area:
+ENTRY(__dma_inv_area)
 	add	x1, x1, x0
 	/* FALLTHROUGH */
 
