@@ -18,7 +18,7 @@ static char __percpu *perf_trace_buf[PERF_NR_CONTEXTS];
 typedef typeof(unsigned long [PERF_MAX_TRACE_SIZE / sizeof(unsigned long)])
 	perf_trace_t;
 
-/* Count the events in use (per event id, not per instance) */
+/* Count the events in use (per event id, not per instance). */
 static int	total_ref_count;
 
 static int perf_trace_event_perm(struct trace_event_call *tp_event,
@@ -259,7 +259,8 @@ int perf_trace_add(struct perf_event *p_event, int flags)
 void perf_trace_del(struct perf_event *p_event, int flags)
 {
 	struct trace_event_call *tp_event = p_event->tp_event;
-	hlist_del_rcu(&p_event->hlist_entry);
+	if (!hlist_unhashed(&p_event->hlist_entry))
+		hlist_del_rcu(&p_event->hlist_entry);
 	tp_event->class->reg(tp_event, TRACE_REG_PERF_DEL, p_event);
 }
 
