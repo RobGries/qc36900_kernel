@@ -551,6 +551,8 @@ static int spi_qup_io_config(struct spi_device *spi, struct spi_transfer *xfer)
 	else
 		control &= ~SPI_IO_C_CLK_IDLE_HIGH;
 
+	control |= SPI_IO_C_MX_CS_MODE;
+
 	writel_relaxed(control, controller->base + SPI_IO_CONTROL);
 
 	config = readl_relaxed(controller->base + SPI_CONFIG);

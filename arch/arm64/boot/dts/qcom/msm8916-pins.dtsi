@@ -208,7 +208,7 @@
 			pins = "gpio16", "gpio17", "gpio19";
 		};
 		pinmux_cs {
-			function = "gpio";
+			function = "blsp_spi5";
 			pins = "gpio18";
 		};
 		pinconf {
