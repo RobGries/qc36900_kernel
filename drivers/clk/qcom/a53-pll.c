@@ -26,6 +26,7 @@ static const struct pll_freq_tbl a53pll_freq[] = {
 	{ 1152000000, 62, 0x0, 0x1, 0 },
 	{ 1209600000, 65, 0x0, 0x1, 0 },
 	{ 1401600000, 73, 0x0, 0x1, 0 },
+	{ 0, 0, 0, 0, 0 },
 };
 
 static const struct regmap_config a53pll_regmap_config = {
