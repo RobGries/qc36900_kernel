@@ -1573,7 +1573,7 @@ static bool cpr_is_close_loop_disabled(struct cpr_drv *drv,
 	 * redundant bit again
 	 */
 	idx = !!(fuses == desc->cpr_fuses.cpr_fuse);
-	disable = &desc->cpr_fuses.disable[idx];
+	disable = &desc->cpr_fuses.disable[0];
 
 	if (cpr_read_efuse(qfprom, disable))
 		return true;
