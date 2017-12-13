@@ -292,6 +292,11 @@ static int pm8xxx_rtc_set_alarm(struct device *dev, struct rtc_wkalrm *alarm)
 
 	rtc_tm_to_time(&alarm->time, &secs);
 
+	if (rtc_dd->rtc_offset_is_valid) {
+		if (secs > rtc_dd->rtc_offset_seconds)
+			secs -= rtc_dd->rtc_offset_seconds;
+	}
+
 	for (i = 0; i < NUM_8_BIT_RTC_REGS; i++) {
 		value[i] = secs & 0xFF;
 		secs >>= 8;
@@ -346,6 +351,10 @@ static int pm8xxx_rtc_read_alarm(struct device *dev, struct rtc_wkalrm *alarm)
 	}
 
 	secs = value[0] | (value[1] << 8) | (value[2] << 16) | (value[3] << 24);
+
+	if (rtc_dd->rtc_offset_is_valid) {
+		secs += rtc_dd->rtc_offset_seconds;
+	}
 
 	rtc_time_to_tm(secs, &alarm->time);
 
