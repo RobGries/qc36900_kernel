@@ -168,8 +168,8 @@ struct qcom_smd_endpoint {
 };
 
 #define to_smd_device(_rpdev)	container_of(_rpdev, struct qcom_smd_device, rpdev)
-#define to_smd_edge(d)		container_of(d, struct qcom_smd_edge, dev)
-#define to_smd_endpoint(ept)	container_of(ept, struct qcom_smd_endpoint, ept)
+#define to_smd_edge(_dev)		container_of(_dev, struct qcom_smd_edge, dev)
+#define to_smd_endpoint(_ept)	container_of(_ept, struct qcom_smd_endpoint, ept)
 
 /**
  * struct qcom_smd_channel - smd channel struct
