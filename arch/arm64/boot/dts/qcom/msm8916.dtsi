@@ -1086,6 +1086,11 @@
 				qcom,remote-pid = <1>;
 
 				label = "hexagon";
+
+				fastrpc {
+					compatible = "qcom,fastrpc";
+					qcom,smd-channels = "fastrpcsmd-apps-dsp";
+				};
 			};
 		};
 

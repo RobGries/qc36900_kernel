@@ -591,6 +591,17 @@ config TILE_SROM
 	  device appear much like a simple EEPROM, and knows
 	  how to partition a single ROM for multiple purposes.
 
+config MSM_ADSPRPC
+	tristate "QTI ADSP RPC driver"
+	depends on QCOM_SMD
+	help
+	  Provides a communication mechanism that allows for clients to
+	  make remote method invocations across processor boundary to
+	  applications DSP processor. Say M if you want to enable this
+	  module.
+
+
+
 source "drivers/char/xillybus/Kconfig"
 
 endmenu
