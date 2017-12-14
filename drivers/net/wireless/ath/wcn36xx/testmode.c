@@ -65,7 +65,7 @@ static int wcn36xx_tm_cmd_ptt(struct wcn36xx *wcn, struct ieee80211_vif *vif, st
 {
 	int ret = 0, buf_len;
 	void *buf;
-	struct ftm_rsp_msg *msg, *rsp;
+	struct ftm_rsp_msg *msg, *rsp = NULL;
 	struct sk_buff *skb;
 
 	wcn36xx_dbg(WCN36XX_DBG_TESTMODE, "Start %s\n", __FUNCTION__);
@@ -77,14 +77,14 @@ static int wcn36xx_tm_cmd_ptt(struct wcn36xx *wcn, struct ieee80211_vif *vif, st
 
 	buf = nla_data(tb[WCN36XX_TM_ATTR_DATA]);
 	buf_len = nla_len(tb[WCN36XX_TM_ATTR_DATA]);
-	msg = rsp = (struct ftm_rsp_msg *)buf;
+	msg = (struct ftm_rsp_msg *)buf;
 
 	wcn36xx_dbg(WCN36XX_DBG_TESTMODE,
 		   "testmode cmd wmi msg_id 0x%04X msg_len %d buf %pK buf_len %d\n",
 		   msg->msgId, msg->msgBodyLength,
 		   buf, buf_len);
 
-	wcn36xx_dbg_dump(WCN36XX_DBG_TESTMODE, "REQ ", buf, buf_len);
+	wcn36xx_dbg_dump(WCN36XX_DBG_TESTMODE_DUMP, "REQ ", buf, buf_len);
 
 	switch (msg->msgId) {
 	case MSG_GET_BUILD_RELEASE_NUMBER: {
@@ -106,16 +106,23 @@ static int wcn36xx_tm_cmd_ptt(struct wcn36xx *wcn, struct ieee80211_vif *vif, st
 		rsp->respStatus = 0;
 		break;
 	}
-	default:
+	default: {
+		wcn36xx_dbg(WCN36XX_DBG_TESTMODE, "PPT Request >> HAL size %d\n", msg->msgBodyLength);
+		msg->respStatus = wcn36xx_smd_process_ptt_msg(wcn, vif, msg, msg->msgBodyLength, (void *)(&rsp));
+		wcn36xx_dbg(WCN36XX_DBG_TESTMODE, "Response status = %d\n", msg->respStatus);
+		if (rsp != NULL) {
+			wcn36xx_dbg(WCN36XX_DBG_TESTMODE, "PPT Response << HAL size %d\n", rsp->msgBodyLength);
+		}
 		break;
 	}
+	} // end of switch
 
 	if (rsp == NULL) {
 		rsp = msg;
-		msg->msgBodyLength = 0;
-		msg->respStatus = 1;
+		wcn36xx_warn("No reponse! Echoing request with response status %d\n", rsp->respStatus);
 	}
-	wcn36xx_dbg_dump(WCN36XX_DBG_TESTMODE, "RSP ", rsp, rsp->msgBodyLength);
+	wcn36xx_dbg_dump(WCN36XX_DBG_TESTMODE_DUMP, "RSP ", rsp, rsp->msgBodyLength);
+
 	skb = cfg80211_testmode_alloc_reply_skb(wcn->hw->wiphy,
 						nla_total_size(msg->msgBodyLength));
 	wcn36xx_dbg(WCN36XX_DBG_TESTMODE, "cfg80211_testmode_alloc_reply_skb() size=%d", rsp->msgBodyLength);
@@ -136,8 +143,10 @@ static int wcn36xx_tm_cmd_ptt(struct wcn36xx *wcn, struct ieee80211_vif *vif, st
 	wcn36xx_dbg(WCN36XX_DBG_TESTMODE, "cfg80211_testmode_reply() ret=%d", ret);
 
 out:
-	if (rsp != msg)
+	if (rsp != msg) {
 		kfree(rsp);
+	}
+
 	return ret;
 }
 
@@ -166,13 +175,13 @@ int wcn36xx_tm_cmd(struct ieee80211_hw *hw, struct ieee80211_vif *vif,
 
 	switch (attr) {
 	case WCN36XX_TM_CMD_START:
-		return wcn36xx_tm_cmd_start(wcn);
+		ret = wcn36xx_tm_cmd_start(wcn);
 	case WCN36XX_TM_CMD_STOP:
-		return wcn36xx_tm_cmd_stop(wcn);
+		ret = wcn36xx_tm_cmd_stop(wcn);
 	case WCN36XX_TM_CMD_PTT:
-		return wcn36xx_tm_cmd_ptt(wcn, vif, tb);
+		ret = wcn36xx_tm_cmd_ptt(wcn, vif, tb);
 	default:
-		return -EOPNOTSUPP;
+		ret = -EOPNOTSUPP;
 	}
 
 	return ret;
