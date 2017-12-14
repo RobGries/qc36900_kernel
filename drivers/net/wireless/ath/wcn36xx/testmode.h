@@ -28,11 +28,15 @@ struct ftm_payload {
 
 #ifdef CONFIG_NL80211_TESTMODE
 
+void ftm_init(struct wcn36xx *wcn36xx);
 void wcn36xx_testmode_destroy(struct wcn36xx *wcn36xx);
 int wcn36xx_tm_cmd(struct ieee80211_hw *hw, struct ieee80211_vif *vif,
 		  void *data, int len);
 
 #else
+static inline void ftm_init(struct wcn36xx *wcn36xx)
+{
+}
 
 static inline void wcn36xx_testmode_destroy(struct wcn36xx *wcn36xx)
 {

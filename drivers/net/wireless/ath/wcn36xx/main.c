@@ -338,6 +338,8 @@ static int wcn36xx_start(struct ieee80211_hw *hw)
 	INIT_LIST_HEAD(&wcn->vif_list);
 	spin_lock_init(&wcn->dxe_lock);
 
+	ftm_init(wcn);
+
 	return 0;
 
 out_smd_stop:
@@ -1276,6 +1278,8 @@ static int wcn36xx_remove(struct platform_device *pdev)
 	struct wcn36xx *wcn = hw->priv;
 	wcn36xx_dbg(WCN36XX_DBG_MAC, "platform remove\n");
 
+	wcn36xx_testmode_destroy(wcn);
+
 	release_firmware(wcn->nv);
 
 	ieee80211_unregister_hw(hw);
@@ -1290,8 +1294,6 @@ static int wcn36xx_remove(struct platform_device *pdev)
 
 	mutex_destroy(&wcn->hal_mutex);
 	ieee80211_free_hw(hw);
-
-	wcn36xx_testmode_destroy(wcn);
 
 	return 0;
 }

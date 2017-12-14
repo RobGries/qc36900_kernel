@@ -30,14 +30,14 @@ static struct ftm {
 	bool wfmEnabled;
 } ftm_config;
 
-static void ftm_init(void)
+void ftm_init(struct wcn36xx *wcn36xx)
 {
     ftm_config.wfmEnabled = false;
 
     return;
 }
 
-static int wcn36xx_tm_cmd_start(struct wcn36xx *ar)
+static int wcn36xx_tm_cmd_start(struct wcn36xx *wcn36xx)
 {
 	int ret = 0;
 
@@ -51,7 +51,7 @@ static int wcn36xx_tm_cmd_start(struct wcn36xx *ar)
 	return ret;
 }
 
-static int wcn36xx_tm_cmd_stop(struct wcn36xx *ar)
+static int wcn36xx_tm_cmd_stop(struct wcn36xx *wcn36xx)
 {
 	int ret = 0;
 
@@ -161,7 +161,6 @@ int wcn36xx_tm_cmd(struct ieee80211_hw *hw, struct ieee80211_vif *vif,
 	struct nlattr *tb[WCN36XX_TM_ATTR_MAX + 1];
 	int ret = 0;
 	unsigned short attr;
-	ftm_init();
 
 	wcn36xx_info("Start %s got data=%pK len=%d\n", __FUNCTION__, data, len);
 	wcn36xx_dbg_dump(WCN36XX_DBG_TESTMODE_DUMP, "Data:", data, len);
