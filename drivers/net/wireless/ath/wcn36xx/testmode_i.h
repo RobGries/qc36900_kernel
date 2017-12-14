@@ -57,3 +57,21 @@ enum wcn36xx_tm_cmd {
 	 */
 	WCN36XX_TM_CMD_PTT = 3,
 };
+/**************************/
+#define MSG_GET_BUILD_RELEASE_NUMBER 0x32A2
+
+struct build_release_params{
+   u16 drvMjr;
+   u16 drvMnr;
+   u16 drvPtch;
+   u16 drvBld;
+   u16 pttMax;
+   u16 pttMin;
+   //FwVersionInfo fwVer;
+} __attribute__((packed));
+
+struct msg_get_build_release_number {
+	struct build_release_params relParams;
+} __attribute__((packed));
+
+/***********************/

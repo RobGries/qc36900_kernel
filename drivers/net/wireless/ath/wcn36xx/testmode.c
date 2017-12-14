@@ -17,6 +17,8 @@
 
 #include "testmode.h"
 #include "testmode_i.h"
+#include "hal.h"
+#include "smd.h"
 
 static const struct nla_policy wcn36xx_tm_policy[WCN36XX_TM_ATTR_MAX + 1] = {
 	[WCN36XX_TM_ATTR_CMD]		= { .type = NLA_U16 },
@@ -85,6 +87,25 @@ static int wcn36xx_tm_cmd_ptt(struct wcn36xx *wcn, struct ieee80211_vif *vif, st
 	wcn36xx_dbg_dump(WCN36XX_DBG_TESTMODE, "REQ ", buf, buf_len);
 
 	switch (msg->msgId) {
+	case MSG_GET_BUILD_RELEASE_NUMBER: {
+		struct msg_get_build_release_number *body;
+		rsp = kmalloc(sizeof(*rsp) + sizeof(*body), GFP_ATOMIC);
+		rsp->msgId = msg->msgId;
+		body = (struct msg_get_build_release_number *)&rsp->msgResponse;
+		body->relParams.drvMjr = wcn->fw_major;
+		body->relParams.drvMnr = wcn->fw_minor;
+		body->relParams.drvPtch = wcn->fw_version;
+		body->relParams.drvBld = wcn->fw_revision;
+		body->relParams.pttMax = 10;
+		body->relParams.pttMin = 0;
+		wcn36xx_dbg(WCN36XX_DBG_TESTMODE, "body->{drvVer=%d.%d.%d.%d, pttVer=%d.%d}\n",
+				body->relParams.drvMjr, body->relParams.drvMnr,
+				body->relParams.drvPtch, body->relParams.drvBld,
+				body->relParams.pttMax, body->relParams.pttMin);
+		rsp->msgBodyLength = sizeof(*rsp) + sizeof(*body);
+		rsp->respStatus = 0;
+		break;
+	}
 	default:
 		break;
 	}
