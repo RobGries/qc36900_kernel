@@ -67,7 +67,7 @@ struct build_release_params{
    u16 drvBld;
    u16 pttMax;
    u16 pttMin;
-   //FwVersionInfo fwVer;
+   u16 fwVer;
 } __attribute__((packed));
 
 struct msg_get_build_release_number {
