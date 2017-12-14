@@ -39,6 +39,7 @@
 #include <linux/qcom_scm.h>
 
 #define MPSS_CRASH_REASON_SMEM		421
+#define MPSS_FIRMWARE_BASE_NAME     "modem"
 
 /* RMB Status Register Values */
 #define RMB_PBL_SUCCESS			0x1
@@ -508,9 +509,9 @@ static int q6v5_mpss_load(struct q6v5 *qproc)
 	int ret;
 	int i;
 
-	ret = request_firmware(&fw, "modem.mdt", qproc->dev);
+	ret = request_firmware(&fw, MPSS_FIRMWARE_BASE_NAME ".mdt", qproc->dev);
 	if (ret < 0) {
-		dev_err(qproc->dev, "unable to load modem.mdt\n");
+		dev_err(qproc->dev, "unable to load %s.mdt\n", MPSS_FIRMWARE_BASE_NAME);
 		return ret;
 	}
 
@@ -558,7 +559,7 @@ static int q6v5_mpss_load(struct q6v5 *qproc)
 		ptr = qproc->mpss_region + offset;
 
 		if (phdr->p_filesz) {
-			snprintf(seg_name, sizeof(seg_name), "modem.b%02d", i);
+			snprintf(seg_name, sizeof(seg_name), MPSS_FIRMWARE_BASE_NAME ".b%02d", i);
 			ret = request_firmware(&seg_fw, seg_name, qproc->dev);
 			if (ret) {
 				dev_err(qproc->dev, "failed to load %s\n", seg_name);
@@ -1131,8 +1132,6 @@ static const struct rproc_hexagon_res msm8974_mss = {
 
 static const struct of_device_id q6v5_of_match[] = {
 	{ .compatible = "qcom,q6v5-pil", .data = &msm8916_mss},
-	{ .compatible = "qcom,msm8916-mss-pil", .data = &msm8916_mss},
-	{ .compatible = "qcom,msm8974-mss-pil", .data = &msm8974_mss},
 	{ },
 };
 MODULE_DEVICE_TABLE(of, q6v5_of_match);
