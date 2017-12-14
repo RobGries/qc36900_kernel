@@ -456,9 +456,7 @@ static void wcn36xx_tx(struct ieee80211_hw *hw,
 
 	if (control->sta)
 		sta_priv = wcn36xx_sta_to_priv(control->sta);
-
-	if (wcn36xx_start_tx(wcn, sta_priv, skb))
-		ieee80211_free_txskb(wcn->hw, skb);
+	wcn36xx_start_tx(wcn, sta_priv, skb);
 }
 
 static int wcn36xx_set_key(struct ieee80211_hw *hw, enum set_key_cmd cmd,
