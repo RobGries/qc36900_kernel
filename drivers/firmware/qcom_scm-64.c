@@ -163,13 +163,12 @@ static int qcom_scm_call(struct device *dev, u32 svc_id, u32 cmd_id,
 	res->a3 = ret3;
 
 	if (ret < 0)
-		pr_err("%s: error: funcid %llx, arginfo: %x, "
-			"args: %llx, %llx, %llx, %llx, "
+		pr_err("%s: error: funcid %llx, "
 			"syscall returns: %lx, %llx, %llx, %llx"
-			" (%d)\n", __func__,
-			x0, desc->arginfo,
-			desc->args[0], desc->args[1], desc->args[2], desc->args[3],
-			res->a0, ret1, ret2, ret3, ret);
+			" (%d)\n",
+			__func__, x0,
+			res->a0, ret1, ret2, ret3,
+			ret);
 
 	if (ret < 0)
 		return qcom_scm_remap_error(ret);
