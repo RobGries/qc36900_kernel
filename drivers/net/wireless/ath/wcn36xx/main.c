@@ -26,10 +26,17 @@
 #include <linux/soc/qcom/smem_state.h>
 #include <linux/soc/qcom/wcnss_ctrl.h>
 #include "wcn36xx.h"
+#include "testmode.h"
 
-unsigned int wcn36xx_dbg_mask;
+unsigned int wcn36xx_dbg_mask = 0;
 module_param_named(debug_mask, wcn36xx_dbg_mask, uint, 0644);
 MODULE_PARM_DESC(debug_mask, "Debugging mask");
+
+unsigned int wcn36xx_saved_dbg_mask = 0;
+
+bool wcn36xx_testmode = false;
+module_param_named(testmode, wcn36xx_testmode, bool, 0644);
+MODULE_PARM_DESC(testmode, "Test Mode");
 
 #define CHAN2G(_freq, _idx) { \
 	.band = NL80211_BAND_2GHZ, \
@@ -1062,6 +1069,8 @@ static const struct ieee80211_ops wcn36xx_ops = {
 	.sta_add		= wcn36xx_sta_add,
 	.sta_remove		= wcn36xx_sta_remove,
 	.ampdu_action		= wcn36xx_ampdu_action,
+
+	CFG80211_TESTMODE_CMD(wcn36xx_tm_cmd)
 };
 
 static int wcn36xx_init_ieee80211(struct wcn36xx *wcn)
@@ -1199,6 +1208,8 @@ static int wcn36xx_probe(struct platform_device *pdev)
 	int ret;
 	const u8 *addr;
 
+	wcn36xx_info("testmode=%d dbg_mask=0x%08X\n", wcn36xx_testmode, wcn36xx_dbg_mask);
+
 	wcn36xx_dbg(WCN36XX_DBG_MAC, "platform probe\n");
 
 	wcnss = dev_get_drvdata(pdev->dev.parent);
@@ -1244,6 +1255,10 @@ static int wcn36xx_probe(struct platform_device *pdev)
 	if (ret)
 		goto out_unmap;
 
+#ifdef CONFIG_NL80211_TESTMODE
+	mutex_init(&wcn->conf_mutex);
+#endif
+
 	return 0;
 
 out_unmap:
@@ -1275,6 +1290,8 @@ static int wcn36xx_remove(struct platform_device *pdev)
 
 	mutex_destroy(&wcn->hal_mutex);
 	ieee80211_free_hw(hw);
+
+	wcn36xx_testmode_destroy(wcn);
 
 	return 0;
 }

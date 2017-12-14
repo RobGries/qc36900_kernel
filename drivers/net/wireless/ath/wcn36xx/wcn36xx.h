@@ -39,8 +39,18 @@
 #define WCN36XX_MAX_SCAN_IE_LEN		500
 
 extern unsigned int wcn36xx_dbg_mask;
+extern unsigned int wcn36xx_saved_dbg_mask;
+
+#define wcn36xx_set_dbg_mask(dbg_mask) do { \
+	wcn36xx_saved_dbg_mask = wcn36xx_dbg_mask; \
+	wcn36xx_dbg_mask = dbg_mask; \
+} while(0)
+#define wcn36xx_pop_dbg_mask() do { \
+	wcn36xx_dbg_mask = wcn36xx_saved_dbg_mask; \
+} while(0)
 
 enum wcn36xx_debug_mask {
+	WCN36XX_DBG_NONE    = 0,
 	WCN36XX_DBG_DXE		= 0x00000001,
 	WCN36XX_DBG_DXE_DUMP	= 0x00000002,
 	WCN36XX_DBG_SMD		= 0x00000004,
@@ -56,6 +66,8 @@ enum wcn36xx_debug_mask {
 	WCN36XX_DBG_BEACON_DUMP	= 0x00001000,
 	WCN36XX_DBG_PMC		= 0x00002000,
 	WCN36XX_DBG_PMC_DUMP	= 0x00004000,
+	WCN36XX_DBG_TESTMODE		= 0x00008000,
+	WCN36XX_DBG_TESTMODE_DUMP	= 0x00010000,
 	WCN36XX_DBG_ANY		= 0xffffffff,
 };
 
@@ -171,6 +183,33 @@ struct wcn36xx_sta {
 	int non_agg_frame_ct;
 };
 struct wcn36xx_dxe_ch;
+enum wcn36xx_state {
+	WCN36XX_STATE_OFF = 0,
+	WCN36XX_STATE_ON,
+
+//	/* When doing firmware recovery the device is first powered down.
+//	 * mac80211 is supposed to call in to start() hook later on. It is
+//	 * however possible that driver unloading and firmware crash overlap.
+//	 * mac80211 can wait on conf_mutex in stop() while the device is
+//	 * stopped in ath10k_core_restart() work holding conf_mutex. The state
+//	 * RESTARTED means that the device is up and mac80211 has started hw
+//	 * reconfiguration. Once mac80211 is done with the reconfiguration we
+//	 * set the state to STATE_ON in reconfig_complete(). */
+//	ATH10K_STATE_RESTARTING,
+//	ATH10K_STATE_RESTARTED,
+//
+//	/* The device has crashed while restarting hw. This state is like ON
+//	 * but commands are blocked in HTC and -ECOMM response is given. This
+//	 * prevents completion timeouts and makes the driver more responsive to
+//	 * userspace commands. This is also prevents recursive recovery. */
+//	ATH10K_STATE_WEDGED,
+
+	/* factory tests */
+	WCN36XX_STATE_UTF,
+};
+
+extern bool wcn36xx_testmode;
+
 struct wcn36xx {
 	struct ieee80211_hw	*hw;
 	struct device		*dev;
@@ -183,7 +222,7 @@ struct wcn36xx {
 	u8			fw_minor;
 	u8			fw_major;
 	u32			fw_feat_caps[WCN36XX_HAL_CAPS_SIZE];
-	bool			is_pronto;
+	bool		is_pronto;
 
 	/* extra byte for the NULL termination */
 	u8			crm_version[WCN36XX_HAL_VERSION_LENGTH + 1];
@@ -243,6 +282,12 @@ struct wcn36xx {
 	struct wcn36xx_dfs_entry    dfs;
 #endif /* CONFIG_WCN36XX_DEBUGFS */
 
+#ifdef CONFIG_NL80211_TESTMODE
+	/* prevents concurrent FW reconfiguration */
+	struct mutex conf_mutex;
+
+	enum wcn36xx_state state;
+#endif
 };
 
 static inline bool wcn36xx_is_fw_version(struct wcn36xx *wcn,
