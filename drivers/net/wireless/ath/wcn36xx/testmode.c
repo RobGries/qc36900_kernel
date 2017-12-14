@@ -176,12 +176,16 @@ int wcn36xx_tm_cmd(struct ieee80211_hw *hw, struct ieee80211_vif *vif,
 	switch (attr) {
 	case WCN36XX_TM_CMD_START:
 		ret = wcn36xx_tm_cmd_start(wcn);
+		break;
 	case WCN36XX_TM_CMD_STOP:
 		ret = wcn36xx_tm_cmd_stop(wcn);
+		break;
 	case WCN36XX_TM_CMD_PTT:
 		ret = wcn36xx_tm_cmd_ptt(wcn, vif, tb);
+		break;
 	default:
 		ret = -EOPNOTSUPP;
+		break;
 	}
 
 	return ret;
