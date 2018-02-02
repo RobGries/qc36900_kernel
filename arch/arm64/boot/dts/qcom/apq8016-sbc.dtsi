@@ -11,6 +11,9 @@
  * GNU General Public License for more details.
  */
 
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/input/input.h>
+#include <dt-bindings/sound/apq8016-lpass.h>
 #include "msm8916.dtsi"
 #include "pm8916.dtsi"
 #include "apq8016-sbc-soc-pins.dtsi"
@@ -25,10 +28,7 @@
 		serial1 = &blsp1_uart1;
 		usid0 = &pm8916_0;
 		i2c0	= &blsp_i2c2;
-		i2c1	= &blsp_i2c6;
-		i2c3	= &blsp_i2c4;
-		spi0	= &blsp_spi5;
-		spi1	= &blsp_spi3;
+		i2c1	= &blsp_i2c5;
 	};
 
 	chosen {
@@ -62,76 +62,13 @@
 			status = "okay";
 		};
 
-		i2c@78b8000 {
-		/* On High speed expansion */
-			label = "HS-I2C2";
-			status = "okay";
 
-			adv_bridge: bridge@39 {
-				status = "okay";
-
-				compatible = "adi,adv7533";
-				reg = <0x39>;
-
-				interrupt-parent = <&msmgpio>;
-				interrupts = <31 2>;
-
-				adi,dsi-lanes = <4>;
-
-				pd-gpios = <&msmgpio 32 0>;
-
-				avdd-supply = <&pm8916_l6>;
-				v1p2-supply = <&pm8916_l6>;
-				v3p3-supply = <&pm8916_l17>;
-
-				pinctrl-names = "default","sleep";
-				pinctrl-0 = <&adv7533_int_active &adv7533_switch_active>;
-				pinctrl-1 = <&adv7533_int_suspend &adv7533_switch_suspend>;
-				#sound-dai-cells = <1>;
-
-				ports {
-					#address-cells = <1>;
-					#size-cells = <0>;
-
-					port@0 {
-						reg = <0>;
-						adv7533_in: endpoint {
-							remote-endpoint = <&dsi0_out>;
-						};
-					};
-
-					port@1 {
-						reg = <1>;
-						adv7533_out: endpoint {
-							remote-endpoint = <&hdmi_con>;
-						};
-					};
-				};
-			};
-		};
-
-		i2c@78ba000 {
+		i2c@78b9000 {
 		/* On Low speed expansion */
 			label = "LS-I2C1";
 			status = "okay";
 		};
 
-		spi@78b7000 {
-		/* On High speed expansion */
-			label = "HS-SPI1";
-			status = "okay";
-		};
-
-		spi@78b9000 {
-		/* On Low speed expansion */
-			label = "LS-SPI0";
-			status = "okay";
-			spidev@0 {
-				compatible = "spidev";
-				spi-max-frequency = <100000>;
-				reg = <0>;
-			};
-		};
 
 		leds {
 			pinctrl-names = "default";
@@ -142,47 +79,27 @@
 			compatible = "gpio-leds";
 
 			led@1 {
-				label = "apq8016-sbc:green:user1";
+				label = "miku-red-led";
 				gpios = <&msmgpio 21 GPIO_ACTIVE_HIGH>;
-				linux,default-trigger = "heartbeat";
-				default-state = "off";
+				linux,default-trigger = "none";
+				default-state = "on";
 			};
 
 			led@2 {
-				label = "apq8016-sbc:green:user2";
-				gpios = <&msmgpio 120 GPIO_ACTIVE_HIGH>;
-				linux,default-trigger = "mmc0";
-				default-state = "off";
-			};
-
-			led@3 {
-				label = "apq8016-sbc:green:user3";
-				gpios = <&pm8916_gpios 1 GPIO_ACTIVE_HIGH>;
-				linux,default-trigger = "mmc1";
-				default-state = "off";
-			};
-
-			led@4 {
-				label = "apq8016-sbc:green:user4";
-				gpios = <&pm8916_gpios 2 GPIO_ACTIVE_HIGH>;
+				label = "miku-blue-led";
+				gpios = <&msmgpio 22 GPIO_ACTIVE_HIGH>;
 				linux,default-trigger = "none";
 				default-state = "off";
 			};
 
-			led@5 {
-				label = "apq8016-sbc:yellow:wlan";
-				gpios = <&pm8916_mpps 2 GPIO_ACTIVE_HIGH>;
-				linux,default-trigger = "phy0tx";
-				default-state = "off";
-			};
-
-			led@6 {
-				label = "apq8016-sbc:blue:bt";
-				gpios = <&pm8916_mpps 3 GPIO_ACTIVE_HIGH>;
-				linux,default-trigger = "hci0-power";
+			led@3 {
+				label = "miku-green-led";
+				gpios = <&msmgpio 23 GPIO_ACTIVE_HIGH>;
+				linux,default-trigger = "none";
 				default-state = "off";
 			};
 		};
+
 
 		sdhci@07824000 {
 			vmmc-supply = <&pm8916_l8>;
@@ -220,7 +137,7 @@
 			v3p3-supply = <&pm8916_l13>;
 			vddcx-supply = <&pm8916_s1>;
 			extcon = <&usb_id>, <&usb_id>;
-			dr_mode = "otg";
+			dr_mode = "host";
 			status = "okay";
 			switch-gpio = <&pm8916_gpios 4 GPIO_ACTIVE_HIGH>;
 			pinctrl-names = "default";
@@ -239,19 +156,7 @@
 			};
 
 			dsi@1a98000 {
-				status = "okay";
-
-				vdda-supply = <&pm8916_l2>;
-				vddio-supply = <&pm8916_l6>;
-
-				ports {
-					port@1 {
-						endpoint {
-							remote-endpoint = <&adv7533_in>;
-							data-lanes = <0 1 2 3>;
-						};
-					};
-				};
+				status = "disabled";
 			};
 
 			dsi-phy@1a98300 {
@@ -290,18 +195,21 @@
                         pinctrl-1 = <&cdc_pdm_lines_sus &ext_sec_tlmm_lines_sus &ext_mclk_tlmm_lines_sus>;
                         pinctrl-names = "default", "sleep";
                         qcom,model = "DB410c";
-                        qcom,audio-routing =
-                                "AMIC2", "MIC BIAS Internal2",
-                                "AMIC3", "MIC BIAS External1";
-			external-dai-link@0 {
-				link-name = "ADV7533";
-				cpu { /* QUAT */
-					sound-dai = <&lpass MI2S_QUATERNARY>;
-				};
-				codec {
-					sound-dai = <&adv_bridge 0>;
-				};
-			};
+                        /*qcom,audio-routing =
+                                "AMIC1", "MIC BIAS External1",
+                                "AMIC3", "MIC BIAS Internal1";*/
+
+			qcom,audio-routing = 
+				"MIC BIAS External1", "Handset Mic",
+				"MIC BIAS Internal2", "Headset Mic",
+				"MIC BIAS External1", "Secondary Mic",
+				"AMIC1", "MIC BIAS External1",
+				"AMIC2", "MIC BIAS Internal2",
+				"AMIC3", "MIC BIAS External1",
+				"DMIC1", "MIC BIAS Internal1",
+				"MIC BIAS Internal1", "Digital Mic1",
+				"DMIC2", "MIC BIAS Internal1",
+				"MIC BIAS Internal1", "Digital Mic2";
 
                         internal-codec-playback-dai-link@0 {            /* I2S - Internal codec */
                                 link-name = "WCD";
@@ -353,28 +261,17 @@
 		};
 	};
 
-	usb2513 {
+	/*usb2513 {
 		compatible = "smsc,usb3503";
 		reset-gpios = <&pm8916_gpios 3 GPIO_ACTIVE_LOW>;
 		initial-mode = <1>;
-	};
+	};*/
 
 	usb_id: usb-id {
 		compatible = "linux,extcon-usb-gpio";
 		id-gpio = <&msmgpio 121 GPIO_ACTIVE_HIGH>;
 		pinctrl-names = "default";
 		pinctrl-0 = <&usb_id_default>;
-	};
-
-	hdmi-out {
-		compatible = "hdmi-connector";
-		type = "a";
-
-		port {
-			hdmi_con: endpoint {
-				remote-endpoint = <&adv7533_out>;
-			};
-		};
 	};
 
 	gpio_keys {
@@ -405,7 +302,7 @@
 				data-lanes = <0 2>;
 				qcom,settle-cnt = <0xe>;
 				remote-endpoint = <&ov5645_ep>;
-				status = "disabled";
+				status = "okay";
 			};
 		};
 		port@1 {
@@ -421,12 +318,12 @@
 	};
 };
 
-&blsp_i2c6 {
+&blsp_i2c5 {
 	status = "ok";
 
-	camera_rear@76 {
-		compatible = "ovti,ov5645";
-		reg = <0x76>;
+	camera_rear@78 {
+		compatible = "ovti,ov5640";
+		reg = <0x78>;
 
 		enable-gpios = <&msmgpio 34 0>;
 		reset-gpios = <&msmgpio 35 1>;
@@ -437,11 +334,13 @@
 		clock-names = "xclk";
 		clock-frequency = <23880000>;
 
-		vdddo-supply = <&camera_vdddo_1v8>;
-		vdda-supply = <&camera_vdda_2v8>;
+		vdddo-supply = <&pm8916_l5>;
+		vdda-supply = <&pm8916_l10>;
 		vddd-supply = <&camera_vddd_1v5>;
-
-		status = "disabled";
+		
+		status = "okay";
+                
+                qcom,use_cci;
 
 		port {
 			ov5645_ep: endpoint {
@@ -451,7 +350,7 @@
 			};
 		};
 	};
-
+	
 	camera_front@74 {
 		compatible = "ovti,ov5645";
 		reg = <0x74>;
@@ -480,6 +379,69 @@
 		};
 	};
 };
+
+/*&blsp_i2c5 {
+	status = "ok";
+
+	camera_rear@78 {
+		compatible = "ovti,ov5645";
+		reg = <0x78>;
+
+		enable-gpios = <&msmgpio 34 0>;
+		reset-gpios = <&msmgpio 35 1>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&camera_rear_default>;
+
+		clocks = <&gcc GCC_CAMSS_MCLK0_CLK>;
+		clock-names = "xclk";
+		clock-frequency = <23880000>;
+
+		vdddo-supply = <&pm8916_l5>;
+		vdda-supply = <&pm8916_l10>;
+		vddd-supply = <&camera_vddd_1v5>;
+		
+		status = "okay";
+                
+                qcom,use_cci;
+
+		port {
+			ov5645_ep: endpoint {
+				clock-lanes = <1>;
+				data-lanes = <0 2>;
+				remote-endpoint = <&csiphy0_ep>;
+			};
+		};
+	};
+	
+	camera_front@74 {
+		compatible = "ovti,ov5645";
+		reg = <0x74>;
+
+		enable-gpios = <&msmgpio 33 0>;
+		reset-gpios = <&msmgpio 28 1>;
+		pinctrl-names = "default";
+		pinctrl-0 = <&camera_front_default>;
+
+		clocks = <&gcc GCC_CAMSS_MCLK1_CLK>;
+		clock-names = "xclk";
+		clock-frequency = <23880000>;
+
+		vdddo-supply = <&camera_vdddo_1v8>;
+		vdda-supply = <&camera_vdda_2v8>;
+		vddd-supply = <&camera_vddd_1v5>;
+
+		status = "disabled";
+
+		port {
+			ov5645_2_ep: endpoint {
+				clock-lanes = <1>;
+				data-lanes = <0 2>;
+				remote-endpoint = <&csiphy1_ep>;
+			};
+		};
+	};
+};*/
+
 
 &wcd_codec {
         status = "okay";
@@ -537,13 +499,18 @@
 	};
 
 	l5 {
-		regulator-min-microvolt = <1750000>;
-		regulator-max-microvolt = <3337000>;
+		regulator-min-microvolt = <1800000>;
+		regulator-max-microvolt = <1800000>;
+		regulator-always-on;
+		regulator-boot-on;
 	};
 
 	l6 {
 		regulator-min-microvolt = <1800000>;
 		regulator-max-microvolt = <1800000>;
+		regulator-always-on;
+		regulator-boot-on;
+
 	};
 
 	l7 {
@@ -562,8 +529,11 @@
 	};
 
 	l10 {
-		regulator-min-microvolt = <1750000>;
-		regulator-max-microvolt = <3337000>;
+		regulator-min-microvolt = <2800000>;
+		regulator-max-microvolt = <2800000>;
+		regulator-always-on;
+		regulator-boot-on;
+
 	};
 
 	l11 {
